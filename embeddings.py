@@ -46,7 +46,7 @@ def embeddings(x):
         b = a[0, 1:-1, :]
         c = torch.mean(b, 0)
         means.append(c)
-        directory = Path(f"/srv/scratch/PLM/embeddings/{n}/{name}/layer_{i}/")
+        directory = Path(f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{i}/")
         directory.mkdir(exist_ok=True, parents=True)
         with open(f"{directory}/{ID}.pkl", "wb") as f:
             pickle.dump(c, f)
