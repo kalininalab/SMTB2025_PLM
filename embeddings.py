@@ -10,8 +10,12 @@ import argparse
 parser = argparse.ArgumentParser(description="Embeddings.")
 parser.add_argument('--dataset', type=str, required=True)
 parser.add_argument('--esm_model', type=str, required=True)
-
 args = parser.parse_args()
+
+if torch.cuda.is_available():
+    device = "cuda"
+else:
+    device = "cpu"
 
 n = args.esm_model[6:8]
 if "_" in n:
@@ -25,6 +29,7 @@ from transformers import AutoTokenizer, AutoModelForMaskedLM
 
 tokenizer = AutoTokenizer.from_pretrained(f"facebook/{args.esm_model}")
 model = AutoModelForMaskedLM.from_pretrained(f"facebook/{args.esm_model}")
+model.to(device)
 
 # Download the file
 df = pd.read_csv(f"/srv/scratch/PLM/datasets/{args.dataset}")
@@ -37,14 +42,15 @@ def embeddings(x):
     seq = df.at[x, 'Sequence']
     ID = df.at[x, 'ID']
     tokens = tokenizer.encode(seq, return_tensors="pt")
+    tokens = tokens.to(device)
     embeddings = model(tokens, output_hidden_states=True)
-
     means = []
 
     for i in range(0,n+1):
         a = embeddings.hidden_states[i]
         b = a[0, 1:-1, :]
         c = torch.mean(b, 0)
+        c = c.to("cpu")
         means.append(c)
         directory = Path(f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{i}/")
         directory.mkdir(exist_ok=True, parents=True)
