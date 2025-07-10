@@ -58,6 +58,27 @@ def get_data(split):
     return data
 
 
+def build_dataloader(df: pd.DataFrame, embed_path: Path, **dataloader_kwargs: Any) -> DataLoader:
+    """
+    Build a DataLoader for the given DataFrame and embedding path.
+
+    :param df: DataFrame containing the data.
+    :param embed_path: Path to the directory containing the embeddings.
+    :param dataloader_kwargs: Additional arguments for DataLoader.
+
+    :return: DataLoader for the embeddings and targets.
+    """
+    embed_path = Path(embed_path)
+    embeddings = []
+    for idx in df["ID"].values:
+        with open(embed_path / f"{idx}.pkl", "rb") as f:
+            embeddings.append(pickle.load(f))
+    # inputs = torch.tensor(embeddings, dtype=torch.float32).to(DEVICE)
+    inputs = torch.stack(embeddings)
+    targets = torch.tensor(df['label'].values, dtype=torch.float)
+    return DataLoader(TensorDataset(inputs, targets), **dataloader_kwargs)
+
+
 class Model(nn.Module):
     def __init__(self):
         super().__init__()
@@ -83,7 +104,10 @@ es_losses = []
 loss = nn.MSELoss()
 best_val_loss = float('inf')
 epochs_without_improvement = 0
-train, valid, test = get_data("train"), get_data("valid"), get_data("test")
+train = build_dataloader(df[df["split"] == "train"], f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{args.layer}/", batch_size=args.batch_size, shuffle=True, pin_memory=True)
+valid = build_dataloader(df[df["split"] == "valid"], f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{args.layer}/", batch_size=args.batch_size, shuffle=False, pin_memory=True)
+test = build_dataloader(df[df["split"] == "test"], f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{args.layer}/", batch_size=args.batch_size, shuffle=False, pin_memory=True)
+# train, valid, test = get_data("train"), get_data("valid"), get_data("test")
 model.to(device)
 
 for e in tqdm(range(TRAIN_EPOCHES)):
