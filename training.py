@@ -35,17 +35,19 @@ df = pd.read_csv(f"/srv/scratch/PLM/datasets/{args.dataset}")
 torch.manual_seed(25)
 
 def get_data(split):
-
+    print("Load", split)
     x = []
     y = []
 
-    for file in os.listdir(f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{args.layer}/"):
+    for file in tqdm(os.listdir(f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{args.layer}/")):
         index = file[:-4]
         df2 = df[df["ID"] == index]
         if df2["split"].values[0] == split:
             value = df2["label"]
             y.append(value.values[0])
-            embedding = pd.read_pickle(f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{args.layer}/{file}")
+            with open(f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{args.layer}/{file}", "rb") as f:
+                embedding = pickle.load(f)
+            # embedding = pd.read_pickle(f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{args.layer}/{file}")
             x.append(embedding)
 
     x = torch.stack(x)
@@ -84,7 +86,7 @@ epochs_without_improvement = 0
 train, valid, test = get_data("train"), get_data("valid"), get_data("test")
 model.to(device)
 
-for e in range(TRAIN_EPOCHES):
+for e in tqdm(range(TRAIN_EPOCHES)):
     for batch in train:
         train_x, train_y = batch
         train_x = train_x.to(device)
