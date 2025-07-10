@@ -87,6 +87,7 @@ train, valid, test = get_data("train"), get_data("valid"), get_data("test")
 model.to(device)
 
 for e in tqdm(range(TRAIN_EPOCHES)):
+    model.train()
     for batch in train:
         train_x, train_y = batch
         train_x = train_x.to(device)
@@ -99,6 +100,7 @@ for e in tqdm(range(TRAIN_EPOCHES)):
 
 
     with torch.no_grad():
+        model.eval()
         v_errors = []
         for batch in valid:
             valid_x, valid_y = batch
@@ -121,7 +123,8 @@ for e in tqdm(range(TRAIN_EPOCHES)):
             break
 
 with torch.no_grad():
-    t_errors =[]
+    model.eval()
+    t_errors = []
     for batch in test:
         test_x, test_y = batch
         test_x = test_x.to(device)
