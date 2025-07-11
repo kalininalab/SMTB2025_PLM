@@ -24,16 +24,11 @@ print(device)
 
 parser = argparse.ArgumentParser(description="Embeddings.")
 parser.add_argument('--dataset', type=str, required=True)
-parser.add_argument('--esm_model', type=str, required=True) 
+parser.add_argument('--model', type=str, required=True) 
 parser.add_argument('--layer', type=int, required=True)
 parser.add_argument('--function', type=str, required=True)
 args = parser.parse_args()
 
-#extracting the number of model
-n = args.esm_model[6:8]
-if "_" in n:
-    n = args.esm_model[6:7]
-n = int(n)
 
 name = args.dataset[:-4]
 
@@ -45,7 +40,7 @@ random.seed(SEED)
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 
-def build_dataloader(df: pd.DataFrame, embed_path: Path, **dataloader_kwargs: Any) -> DataLoader:
+def build_dataloader(df: pd.DataFrame, embed_path: Path):
     """
     Build a DataLoader for the given DataFrame and embedding path.
 
@@ -69,9 +64,9 @@ def build_dataloader(df: pd.DataFrame, embed_path: Path, **dataloader_kwargs: An
     return inputs, targets
 
 
-train_X, train_Y = build_dataloader(df[df["split"] == "train"], f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{args.layer}/", batch_size=args.batch_size, shuffle=True, pin_memory=True)
-valid_X, valid_Y = build_dataloader(df[df["split"] == "valid"], f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{args.layer}/", batch_size=args.batch_size, shuffle=False, pin_memory=True)
-test_X, test_Y = build_dataloader(df[df["split"] == "test"], f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{args.layer}/", batch_size=args.batch_size, shuffle=False, pin_memory=True)
+train_X, train_Y = build_dataloader(df[df["split"] == "train"], f"/srv/scratch/PLM/embeddings/{args.model}/{name}/layer_{args.layer}/")
+valid_X, valid_Y = build_dataloader(df[df["split"] == "valid"], f"/srv/scratch/PLM/embeddings/{args.model}/{name}/layer_{args.layer}/")
+test_X, test_Y = build_dataloader(df[df["split"] == "test"], f"/srv/scratch/PLM/embeddings/{args.model}/{name}/layer_{args.layer}/")
 
 if {args.function} == "linereg":
     reg = LinearRegression().fit(train_X, train_Y)
@@ -90,7 +85,7 @@ pd.DataFrame({
     "train_spearman": [train_spearman],
     "valid_spearman": [valid_spearman],
     "test_spearman": [test_spearman],
-}).to_csv(f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{args.layer}/metrics_{args.function}.csv", index=False)
+}).to_csv(f"/srv/scratch/PLM/embeddings/{args.model}/{name}/layer_{args.layer}/metrics_{args.function}.csv", index=False)
 
 
 max_len = max(len(train_Y), len(valid_Y), len(test_Y))
@@ -117,7 +112,7 @@ pd.DataFrame({
     "valid_predictions": valid_prediction,
     "test": test_Y,
     "test_predicted": test_prediction
-}).to_csv(f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{args.layer}/predictions_{args.function}.csv", index=False)
+}).to_csv(f"/srv/scratch/PLM/embeddings/{args.model}/{name}/layer_{args.layer}/predictions_{args.function}.csv", index=False)
 
 
 
@@ -126,5 +121,5 @@ if not os.path.exists(f"/srv/scratch/PLM/results.csv"):
         f.write("Embedding Model, Downstream Model, #layers, Dataset, Spearman\n")  # Create a table
 
 with open("/srv/scratch/PLM/results.csv", "a") as f:
-    f.write(f"{args.esm_model}, {args.fuction}, {args.layer}, {args.dataset}, {test_spearman}\n")
+    f.write(f"{args.model}, {args.fuction}, {args.layer}, {args.dataset}, {test_spearman}\n")
 
