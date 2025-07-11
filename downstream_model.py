@@ -15,6 +15,7 @@ from typing import Any
 from scipy.stats import spearmanr
 from ray import tune
 import random
+from sklearn.metrics import mean_squared_error
 
 if torch.cuda.is_available():
     device = "cuda"
@@ -87,6 +88,7 @@ pd.DataFrame({
     "test_spearman": [test_spearman],
 }).to_csv(f"/srv/scratch/PLM/embeddings/{args.model}/{name}/layer_{args.layer}/metrics_{args.function}.csv", index=False)
 
+mse = mean_squared_error(test_prediction, test_Y)
 
 max_len = max(len(train_Y), len(valid_Y), len(test_Y))
 
@@ -118,8 +120,8 @@ pd.DataFrame({
 
 if not os.path.exists(f"/srv/scratch/PLM/results.csv"):
     with open(f"/srv/scratch/PLM/results.csv", "w") as f:
-        f.write("Embedding Model, Downstream Model, #layers, Dataset, Spearman\n")  # Create a table
+        f.write("Embedding Model, Downstream Model, #layers, Dataset, Spearman, MSE\n")  # Create a table
 
 with open("/srv/scratch/PLM/results.csv", "a") as f:
-    f.write(f"{args.model}, {args.fuction}, {args.layer}, {args.dataset}, {test_spearman}\n")
+    f.write(f"{args.model}, {args.fuction}, {args.layer}, {args.dataset}, {test_spearman}, {mse}\n")
 
