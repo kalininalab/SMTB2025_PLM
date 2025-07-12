@@ -63,14 +63,14 @@ class Model(nn.Module):
         super().__init__()
         self.head = nn.Sequential(
             nn.LazyLinear(128),
-            nn.LeakyReLU(),
-            nn.Dropout(0.1),
+            nn.ReLU(),
             nn.Linear(128, 1)
         )
 
     def forward(self, x):
         return self.head(x)
     
+
 #Create a model
 
 TRAIN_EPOCHES = 50
@@ -146,7 +146,6 @@ for e in tqdm(range(TRAIN_EPOCHES)):
             epochs_without_impromevent = 0
             best_model = copy.deepcopy(model)
 
-
 with torch.no_grad():
     best_model.eval()
     t_errors = []
@@ -156,10 +155,9 @@ with torch.no_grad():
         test_x, test_y = batch
         test_x = test_x.to(device)
         test_y = test_y.to(device)
-
+        
         test_y_hat = best_model(test_x)
         test_error = loss(test_y_hat, test_y)
-    
 
         test_ys += list(test_y.detach().cpu().numpy().flatten())
         test_y_hats += list(test_y_hat.detach().cpu().numpy().flatten())
@@ -176,14 +174,14 @@ pd.DataFrame({
     "val_loss": valid_loss, 
     "valid_spearman": valid_spearman,
     "valid_pearson": valid_pearson,
-}).to_csv(f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{args.layer}/losses.csv", index=False)
+}).to_csv(f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{args.layer}/losses_h.csv", index=False)
 
 df_predictions = pd.DataFrame({"y": test_ys,"y_hats": test_y_hats})
-df_predictions.to_csv(f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{args.layer}/predictions.csv", index=False)
+df_predictions.to_csv(f"/srv/scratch/PLM/embeddings/esm_t{n}/{name}/layer_{args.layer}/predictions_h.csv", index=False)
 
-if not os.path.exists("/srv/scratch/PLM/results.csv"):
-    with open("/srv/scratch/PLM/results.csv", "w") as f:
+if not os.path.exists("/srv/scratch/PLM/results_h.csv"):
+    with open("/srv/scratch/PLM/results_h.csv", "w") as f:
         f.write("Model Name, #layers, Dataset, Performance, Spearman, Pearson\n")  # Create a table
 
-with open("/srv/scratch/PLM/results.csv", "a") as f:
+with open("/srv/scratch/PLM/results_h.csv", "a") as f:
     f.write(f"{args.esm_model}, {args.layer}, {args.dataset}, {perf}, {spearman}, {pearson}\n")
