@@ -30,6 +30,8 @@ parser.add_argument('--layer', type=int, required=True)
 parser.add_argument('--function', type=str, required=True)
 args = parser.parse_args()
 
+if os.path.exists("/srv/scratch/PLM/embeddings/{args.model}/{name}/layer_{args.layer}/predictions_{args.function}.csv"):
+    exit(0)
 
 name = args.dataset[:-4]
 
@@ -71,7 +73,7 @@ test_X, test_Y = build_dataloader(df[df["split"] == "test"], f"/srv/scratch/PLM/
 if args.function == "linereg":
     reg = LinearRegression().fit(train_X, train_Y)
 elif args.function == "randomforest":
-    reg = RandomForestRegressor().fit(train_X, train_Y)
+    reg = RandomForestRegressor(n_estimators=40, min_samples_leaf=5, max_depth=20, n_jobs=4).fit(train_X, train_Y)
 
 train_prediction = reg.predict(train_X)
 test_prediction = reg.predict(test_X)

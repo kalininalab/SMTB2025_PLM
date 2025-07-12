@@ -63,7 +63,7 @@ class Model(nn.Module):
         super().__init__()
         self.head = nn.Sequential(
             nn.LazyLinear(128),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.Dropout(0.1),
             nn.Linear(128, 1)
         )

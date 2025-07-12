@@ -16,6 +16,7 @@ if torch.cuda.is_available():
     device = "cuda"
 else:
     device = "cpu"
+print(device)
 
 name = args.dataset[:-4]
 
@@ -23,7 +24,7 @@ name = args.dataset[:-4]
 from transformers import AutoTokenizer, T5EncoderModel
 
 tokenizer = AutoTokenizer.from_pretrained(f"ElnaggarLab/{args.model}")
-model = T5EncoderModel.from_pretrained(f"ElnaggarLab/{args.model}")
+model = T5EncoderModel.from_pretrained(f"ElnaggarLab/{args.model}").to(device)
 
 # Download the file
 df = pd.read_csv(f"/srv/scratch/PLM/datasets/{args.dataset}")
@@ -35,15 +36,13 @@ def embeddings(x):
 
     tokens = tokenizer.encode(seq, return_tensors="pt")
         
-    embeddings = model(tokens, output_hidden_states=True)
-    means = []
+    embeddings = model(tokens.to(device), output_hidden_states=True)
 
     for i in range(0,49):
         a = embeddings.hidden_states[i]
-        b = a[:, 1:]
+        b = a[0, 1:]
         c = torch.mean(b, 0)
-        means.append(c)
-        directory = Path(f"/srv/scratch/PLM/embeddings/ankh/{name}/layer_{i}/")
+        directory = Path(f"/srv/scratch/PLM/embeddings/{args.model}/{name}/layer_{i}/")
         directory.mkdir(exist_ok=True, parents=True)
         with open(f"{directory}/{ID}.pkl", "wb") as f:
             pickle.dump(c, f)
