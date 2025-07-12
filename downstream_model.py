@@ -64,14 +64,13 @@ def build_dataloader(df: pd.DataFrame, embed_path: Path):
     print("dataset created")
     return inputs, targets
 
-
 train_X, train_Y = build_dataloader(df[df["split"] == "train"], f"/srv/scratch/PLM/embeddings/{args.model}/{name}/layer_{args.layer}/")
 valid_X, valid_Y = build_dataloader(df[df["split"] == "valid"], f"/srv/scratch/PLM/embeddings/{args.model}/{name}/layer_{args.layer}/")
 test_X, test_Y = build_dataloader(df[df["split"] == "test"], f"/srv/scratch/PLM/embeddings/{args.model}/{name}/layer_{args.layer}/")
 
-if {args.function} == "linereg":
+if args.function == "linereg":
     reg = LinearRegression().fit(train_X, train_Y)
-elif {args.function} == "randomforest":
+elif args.function == "randomforest":
     reg = RandomForestRegressor().fit(train_X, train_Y)
 
 train_prediction = reg.predict(train_X)
@@ -82,13 +81,18 @@ train_spearman = spearmanr(train_prediction, train_Y)[0]
 valid_spearman = spearmanr(valid_prediction, valid_Y)[0]
 test_spearman = spearmanr(test_prediction, test_Y)[0]
 
+train_mse = mean_squared_error(train_prediction, train_Y)
+valid_mse = mean_squared_error(valid_prediction, valid_Y)
+test_mse = mean_squared_error(test_prediction, test_Y)
+
 pd.DataFrame({
     "train_spearman": [train_spearman],
     "valid_spearman": [valid_spearman],
     "test_spearman": [test_spearman],
+    "train_mse": [train_mse],
+    "valid_mse": [valid_mse],
+    "test_mse": [test_mse],
 }).to_csv(f"/srv/scratch/PLM/embeddings/{args.model}/{name}/layer_{args.layer}/metrics_{args.function}.csv", index=False)
-
-mse = mean_squared_error(test_prediction, test_Y)
 
 max_len = max(len(train_Y), len(valid_Y), len(test_Y))
 
@@ -98,7 +102,6 @@ valid_Y = list(valid_Y)
 valid_prediction = list(valid_prediction)
 test_Y = list(test_Y)
 test_prediction = list(test_prediction)
-
 
 train_Y += [0] * (max_len - len(train_Y))
 train_prediction += [0] * (max_len - len(train_prediction))
@@ -116,12 +119,9 @@ pd.DataFrame({
     "test_predicted": test_prediction
 }).to_csv(f"/srv/scratch/PLM/embeddings/{args.model}/{name}/layer_{args.layer}/predictions_{args.function}.csv", index=False)
 
-
-
 if not os.path.exists(f"/srv/scratch/PLM/results.csv"):
     with open(f"/srv/scratch/PLM/results.csv", "w") as f:
         f.write("Embedding Model, Downstream Model, #layers, Dataset, Spearman, MSE\n")  # Create a table
 
 with open("/srv/scratch/PLM/results.csv", "a") as f:
-    f.write(f"{args.model}, {args.fuction}, {args.layer}, {args.dataset}, {test_spearman}, {mse}\n")
-
+    f.write(f"{args.model}, {args.function}, {args.layer}, {args.dataset}, {test_spearman}, {test_mse}\n")
